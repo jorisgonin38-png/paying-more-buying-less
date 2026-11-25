@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paying more, buying less: Britain's shrinking shopping basket</title>
+  <meta name="description" content="An interactive data story on how much food British households buy, how much they spend and how much they pay per kilo, from the 2008 crash to the cost-of-living crisis, based on Defra's Family Food data.">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+
+  <!-- polices : Public Sans (titres, graphiques) et Newsreader (texte) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+
+  <!-- librairies (Chart.js, Snap.svg), puis les données et notre script -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/snapsvg@0.5.1/dist/snap.svg-min.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/script.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#figure-1">Skip to the interactive chart</a>
+
+  <header class="site-header">
+    <p>A data story written for The Independent</p>
+  </header>
+
+  <main>
+    <article>
+      <header class="article-head">
+        <p class="kicker">Cost of living</p>
+        <h1>Britons are paying more than ever for their weekly shop – and taking home less</h1>
+        <p class="standfirst">
+          Government figures covering almost a quarter of a century show households buying less fruit,
+          vegetables and meat, while the price they pay for every kilo has soared.
+        </p>
+        <p class="byline">By Joris Gonin<br>
+          <time datetime="2026-11-27">27 November 2026</time></p>
+      </header>
+
+      <div class="article-body">
+        <p>
+          Fresh fruit tells the story in a single aisle. In 2001-02, the average person in the UK spent £1.02 a
+          week on it and took home 750g. By 2024-25, the weekly spend had more than doubled, to £2.14, for 706g.
+        </p>
+        <p>
+          The same is true across the basket. According to the government's Family Food survey, households now
+          buy less fresh fruit, vegetables, meat, sweets and soft drinks than at the start of the century, yet
+          spend between 59 and 110 per cent more on them. These figures are not adjusted for inflation, but they
+          show how far the cost of the weekly shop has run ahead of what ends up in the cupboard.
+        </p>
+        <p>
+          The interactive chart below (Figure 1) follows these five everyday items through three crises. Each
+          line starts at 100: below 100, households are buying less than in 2001-02. Switch to
+          <em>Price per kilo</em> to see how much more they pay for every kilo they still buy.
+        </p>
+      </div>
+
+      <!-- Figure 1 : graphique Chart.js + panier Snap.svg -->
+      <figure class="data-figure" id="figure-1" aria-labelledby="figure-1-title">
+        <p class="figure-number">Figure 1</p>
+        <h2 id="figure-1-title">Britain's shopping basket has shrunk, but the bill keeps growing</h2>
+        <p class="figure-subtitle" id="figure-1-subtitle">
+          Average amount bought per person per week, for food brought home. Index: 2001-02 = 100.
+        </p>
+
+        <!-- contrôles en dehors du graphique -->
+        <div class="controls" role="group" aria-label="Chart controls">
+          <fieldset>
+            <legend>Show</legend>
+            <div class="segmented">
+              <!-- data-name et data-subtitle : textes affichés par script.js pour chaque mesure -->
+              <input type="radio" name="measure" id="measure-quantity" value="quantity" checked
+                data-name="Amount bought"
+                data-subtitle="Average amount bought per person per week, for food brought home. Index: 2001-02 = 100.">
+              <label for="measure-quantity">Amount bought</label>
+              <input type="radio" name="measure" id="measure-spend" value="spend"
+                data-name="Money spent"
+                data-subtitle="Average spent per person per week on food brought home, in current prices (not adjusted for inflation). Index: 2001-02 = 100.">
+              <label for="measure-spend">Money spent</label>
+              <input type="radio" name="measure" id="measure-price" value="price"
+                data-name="Price paid per kilo"
+                data-subtitle="Average price paid per kilo (per litre for soft drinks): money spent divided by amount bought, in current prices. Index: 2001-02 = 100.">
+              <label for="measure-price">Price per kilo</label>
+            </div>
+          </fieldset>
+
+          <div>
+            <label class="control-label" for="year-slider">Basket year</label>
+            <div class="year-row">
+              <input type="range" id="year-slider" min="0" max="0" value="0" step="1">
+              <output id="year-output" for="year-slider">–</output>
+            </div>
+          </div>
+        </div>
+
+        <div class="figure-grid">
+          <div class="chart-box">
+            <canvas id="food-chart" role="img"
+              aria-label="Line chart of food bought, money spent or price paid per kilo, per person per week, indexed to 2001-02. The same figures are available in the table below the chart."></canvas>
+          </div>
+
+          <div class="basket-panel">
+            <p class="basket-caption" id="basket-caption" aria-live="polite">Your basket</p>
+            <!-- dessin du panier, animé par Snap.svg. Chaque aliment : #item-… > .item-drop (chute, saut)
+                 > position > .item-art (taille, grandit depuis le bas) -->
+            <svg id="basket" viewBox="0 0 400 360" role="group" aria-labelledby="basket-caption">
+              <circle id="sticker" cx="200" cy="200" r="158" fill="#f4e9e7"/>
+
+              <!-- Anse et arrière du panier (derrière les aliments) -->
+              <g id="basket-back" fill="none" stroke="#1a1a1a" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M112 212 C 112 118, 288 118, 288 212" stroke-width="7"/>
+              </g>
+
+              <!-- Soft drinks : bouteille -->
+              <g id="item-softdrinks" class="item">
+                <g class="item-drop">
+                  <g transform="translate(94 236) scale(1.05)">
+                    <g class="item-art">
+                      <path d="M-20 0 L-20 -92 C-20 -104 -9 -110 -8 -122 L-8 -136 L8 -136 L8 -122 C9 -110 20 -104 20 -92 L20 0 Z" fill="#a9d8ea"/>
+                      <rect x="-20" y="-74" width="40" height="30" fill="#e94e3c"/>
+                      <rect x="-10" y="-146" width="20" height="11" rx="2" fill="#14202b"/>
+                      <path d="M-12 -96 L-12 -16" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+                      <g transform="translate(-30 -118) rotate(-20)">
+                        <path class="tag" d="M0 0 L20 0 L26 7 L20 14 L0 14 Z" fill="#14202b"/>
+                        <circle cx="20" cy="7" r="2.2" fill="#fcfcfb"/>
+                      </g>
+                    </g>
+                  </g>
+                </g>
+              </g>
+
+              <!-- Fresh vegetables : carottes -->
+              <g id="item-veg" class="item">
+                <g class="item-drop">
+                  <g transform="translate(150 234) scale(1.25)">
+                    <g class="item-art">
+                      <path d="M-26 0 L-14 -86 L-2 0 Z" fill="#f08a24"/>
+                      <path d="M-4 0 L8 -96 L20 0 Z" fill="#e57a12"/>
+                      <path d="M-14 -86 C-28 -106 -24 -120 -20 -126 M-14 -86 C-10 -108 -6 -116 0 -122 M8 -96 C0 -116 2 -128 6 -134 M8 -96 C14 -116 22 -122 28 -126" fill="none" stroke="#3f8f3a" stroke-width="6" stroke-linecap="round"/>
+                      <g transform="translate(18 -70) rotate(18)">
+                        <path class="tag" d="M0 0 L20 0 L26 7 L20 14 L0 14 Z" fill="#14202b"/>
+                        <circle cx="20" cy="7" r="2.2" fill="#fcfcfb"/>
+                      </g>
+                    </g>
+                  </g>
+                </g>
+              </g>
+
+              <!-- Fresh fruit : pomme -->
+              <g id="item-fruit" class="item">
+                <g class="item-drop">
+                  <g transform="translate(212 236) scale(1.3)">
+                    <g class="item-art">
+                      <path d="M0 -10 C-22 4 -44 -14 -42 -44 C-40 -70 -16 -78 0 -66 C16 -78 40 -70 42 -44 C44 -14 22 4 0 -10 Z" fill="#d93b30"/>
+                      <path d="M0 -66 C0 -76 2 -82 6 -88" fill="none" stroke="#5b3a1e" stroke-width="5" stroke-linecap="round"/>
+                      <path d="M6 -84 C14 -96 30 -96 34 -90 C26 -80 14 -80 6 -84 Z" fill="#3f8f3a"/>
+                      <ellipse cx="-20" cy="-48" rx="6" ry="11" fill="#ffffff" opacity="0.35"/>
+                      <g transform="translate(-44 -92) rotate(-14)">
+                        <path class="tag" d="M0 0 L20 0 L26 7 L20 14 L0 14 Z" fill="#14202b"/>
+                        <circle cx="20" cy="7" r="2.2" fill="#fcfcfb"/>
+                      </g>
+                    </g>
+                  </g>
+                </g>
+              </g>
+
+              <!-- Sweets and chocolate : tablette -->
+              <g id="item-sweets" class="item">
+                <g class="item-drop">
+                  <g transform="translate(268 236) scale(1.2)">
+                    <g class="item-art">
+                      <g transform="rotate(-12)">
+                        <rect x="-22" y="-104" width="44" height="104" rx="3" fill="#6a2c8c"/>
+                        <rect x="-22" y="-104" width="44" height="18" rx="3" fill="#c9c9c9"/>
+                        <rect x="-22" y="-62" width="44" height="16" fill="#f2c94c"/>
+                      </g>
+                      <g transform="translate(6 -126) rotate(10)">
+                        <path class="tag" d="M0 0 L20 0 L26 7 L20 14 L0 14 Z" fill="#14202b"/>
+                        <circle cx="20" cy="7" r="2.2" fill="#fcfcfb"/>
+                      </g>
+                    </g>
+                  </g>
+                </g>
+              </g>
+
+              <!-- Meat : pilon -->
+              <g id="item-meat" class="item">
+                <g class="item-drop">
+                  <g transform="translate(320 236) scale(1.25)">
+                    <g class="item-art">
+                      <path d="M-6 0 L-6 -40" stroke="#efe6d8" stroke-width="10" stroke-linecap="round"/>
+                      <path d="M-6 -36 C-34 -40 -36 -82 -10 -96 C14 -108 36 -86 26 -60 C20 -44 8 -36 -6 -36 Z" fill="#b5522e"/>
+                      <path d="M-10 -84 C0 -92 14 -90 18 -80" fill="none" stroke="#e08a5e" stroke-width="5" stroke-linecap="round"/>
+                      <g transform="translate(-30 -112) rotate(-8)">
+                        <path class="tag" d="M0 0 L20 0 L26 7 L20 14 L0 14 Z" fill="#14202b"/>
+                        <circle cx="20" cy="7" r="2.2" fill="#fcfcfb"/>
+                      </g>
+                    </g>
+                  </g>
+                </g>
+              </g>
+
+              <!-- Avant du panier (devant les aliments) -->
+              <g id="basket-front">
+                <path d="M52 210 L348 210 L326 330 L74 330 Z" fill="#d0021b"/>
+                <g fill="#ffffff" opacity="0.92">
+                  <rect x="86" y="232" width="38" height="16" rx="4"/>
+                  <rect x="140" y="232" width="38" height="16" rx="4"/>
+                  <rect x="194" y="232" width="38" height="16" rx="4"/>
+                  <rect x="248" y="232" width="38" height="16" rx="4"/>
+                  <rect x="302" y="232" width="20" height="16" rx="4"/>
+                  <rect x="92" y="264" width="38" height="16" rx="4"/>
+                  <rect x="146" y="264" width="38" height="16" rx="4"/>
+                  <rect x="200" y="264" width="38" height="16" rx="4"/>
+                  <rect x="254" y="264" width="38" height="16" rx="4"/>
+                  <rect x="98" y="296" width="38" height="16" rx="4"/>
+                  <rect x="152" y="296" width="38" height="16" rx="4"/>
+                  <rect x="206" y="296" width="38" height="16" rx="4"/>
+                  <rect x="260" y="296" width="38" height="16" rx="4"/>
+                </g>
+                <path d="M46 210 L354 210" stroke="#a30016" stroke-width="10" stroke-linecap="round"/>
+              </g>
+            </svg>
+            <ul class="basket-readout" id="basket-readout"></ul>
+            <p class="basket-help">Hover over or tab to an item to find its line. Click it to hide or show it.</p>
+          </div>
+        </div>
+
+        <figcaption>
+          <p><strong>How to read this chart:</strong> each line starts at 100 in 2001-02.
+            A value of 90 means 10% less than in that year, a value of 110 means 10% more. Shaded bands mark
+            periods of crisis. Click a year on the chart, or use the slider, to see that year's basket: the area of each
+            item is proportional to the value shown.</p>
+          <p class="source">Source: Defra, Family Food datasets (Living Costs and Food Survey).
+            Money spent and prices are not adjusted for inflation.</p>
+
+          <details class="data-table">
+            <summary>See the figures as a table</summary>
+            <div class="table-scroll">
+              <table id="data-table"></table>
+            </div>
+          </details>
+        </figcaption>
+      </figure>
+
+      <div class="article-body">
+        <h2>Three crises, one direction</h2>
+        <p>
+          The 2008 financial crash left a clear mark: purchases of fresh fruit fell by 11 per cent between 2007
+          and 2009.
+        </p>
+        <p>
+          The pandemic briefly turned things around. In 2020-21, with restaurants, cafés and pubs closed for long
+          stretches, households bought 19 per cent more sweets and chocolate and 11 per cent more fresh
+          vegetables than the year before, while the food they bought to eat out fell by 79 per cent. The
+          rebound did not last: by 2022-23, purchases of fresh fruit were 21 per cent below their 2020-21 level.
+        </p>
+
+        <h2>The squeeze</h2>
+        <p>
+          Then came the cost-of-living crisis. Between 2021-22 and 2024-25, the average price paid per kilo of
+          fresh vegetables rose by 31 per cent, and households bought 7 per cent less of them. Over the same three
+          years, the price paid per kilo of sweets and chocolate climbed by 32 per cent, and the price per litre
+          of soft drinks by 31 per cent.
+        </p>
+        <p>
+          Over the whole period, the average price paid for a kilo of fresh fruit has gone from £1.36 to £3.03,
+          an increase of 123 per cent. Figure 2 puts the two halves of the story side by side: for every item,
+          the amount bought is down while the money spent is up.
+        </p>
+
+        <figure class="static-figure" id="figure-2">
+          <img src="img/figure-2.png" width="1080" height="1350" loading="lazy"
+            alt="Bar chart of the change between 2001-02 and 2024-25 in the amount bought and money spent per person per week. Fresh fruit: bought down 6%, spent up 110%. Sweets and chocolate: down 1%, up 91%. Soft drinks: down 17%, up 88%. Fresh vegetables: down 7%, up 74%. Meat: down 15%, up 59%.">
+          <figcaption>
+            <span class="figure-number">Figure 2</span>
+            For all five items, the amount bought has fallen since 2001-02 while spending has risen. Spending is
+            in current prices, not adjusted for inflation. This chart also appears in our Instagram carousel.
+          </figcaption>
+        </figure>
+
+        <h2>Getting less for more</h2>
+        <p>
+          Averages hide very different experiences, and the survey does not show which households have cut back
+          the most. But the direction is the same for every item in our basket. In current prices, the price
+          paid per kilo of all five items, and weekly spending on four of them, reached a record high in 2024-25.
+        </p>
+        <p>
+          For many families, the question is no longer whether the weekly basket has shrunk, but how much
+          smaller it can get.
+        </p>
+
+        <aside class="method" aria-labelledby="method-title">
+          <h2 id="method-title">How we did this</h2>
+          <p>
+            The figures come from Defra's Family Food datasets, which draw on the Living Costs and Food Survey,
+            a diary kept by thousands of UK households each year. We used the average quantity bought and the
+            average amount spent per person per week on food brought home. Food eaten out is not included,
+            except in the 2020-21 comparison, which uses the survey's separate eating-out figures.
+          </p>
+          <p>
+            The price per kilo is the money spent divided by the amount bought. It is an average price paid, so it
+            also reflects changes in what people buy, such as choosing cheaper or dearer products. To compare items
+            bought in very different amounts on one scale, each series is turned into an index: its value in
+            2001-02 is set to 100. Money spent and prices are shown in current prices, not
+            adjusted for inflation.
+          </p>
+          <p>
+            The survey has switched between financial years (April to March) and calendar years (2006 to 2014):
+            we left out calendar year 2015, which overlaps with 2015-16. Figures before 2001-02 come from a
+            different survey and are not shown. Alcohol is excluded because the survey itself warns that it is
+            heavily under-reported. Like all diary surveys, Family Food is likely to miss some purchases.
+          </p>
+        </aside>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <p>Student project for the SAÉ 303 module, BUT MMI, Le Puy-en-Velay. Not affiliated with or published by The Independent.</p>
+    <p>Data: <a href="https://www.gov.uk/government/statistical-data-sets/family-food-datasets">Defra, Family Food datasets</a>.
+      Charts made with Chart.js and Snap.svg.</p>
+  </footer>
+</body>
+
+</html>
